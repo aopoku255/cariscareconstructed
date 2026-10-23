@@ -10,3 +10,7 @@ test-results/
 *.tsbuildinfo
 next-env.d.ts
 e2e/.auth/
+
+.vercel
+.env*
+!.env.example

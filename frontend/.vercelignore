@@ -1,0 +1,12 @@
+# Files the Vercel CLI must not upload (local secrets, build output, test artefacts).
+node_modules/
+.next/
+out/
+.env
+.env.*
+!.env.example
+coverage/
+playwright-report/
+test-results/
+e2e/.auth/
+*.tsbuildinfo
