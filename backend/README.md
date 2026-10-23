@@ -25,8 +25,9 @@ Copy `.env.example` to `.env`. Configuration is validated at startup (`src/confi
 - `DB_*`: MySQL connection.
 - `SESSION_SECRET`: 32+ random characters (also used as the key for hashing IP addresses).
 - `FRONTEND_URL`: exact browser origin(s) allowed by CORS and the CSRF origin check.
-- `API_PUBLIC_URL`: used to build media URLs.
-- `STORAGE_DIR`: persistent uploads directory (`public/uploads`, `private/uploads`).
+- `API_PUBLIC_URL`: the API's own address (media URLs with the local storage driver).
+- `STORAGE_DRIVER`: `local` (default) or `r2`. With `r2`, also set the `R2_*` values and `MEDIA_PUBLIC_URL`; see [docs/media-storage.md](../docs/media-storage.md).
+- `STORAGE_DIR`: persistent uploads directory (`public/uploads`, `private/uploads`) for the local driver, and the importer's download cache.
 - `REVALIDATE_URL` and `REVALIDATE_SECRET`: frontend cache purge after edits.
 - `SMTP_*` and `MAIL_FROM`: optional email; without it, password-reset email and double opt-in are disabled honestly.
 

@@ -39,6 +39,20 @@ services:
         value: "false"
       - key: LOG_LEVEL
         value: info
+      # Media storage: "local" uses the disk below; "r2" uses Cloudflare R2 (docs/media-storage.md),
+      # in which case the disk block can be removed.
+      - key: STORAGE_DRIVER
+        sync: false
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+      - key: MEDIA_PUBLIC_URL
+        sync: false
       # e.g. https://carisca-api.onrender.com  (used in media URLs)
       - key: API_PUBLIC_URL
         sync: false
@@ -102,3 +116,6 @@ services:
           envVarKey: REVALIDATE_SECRET
       - key: CONTENT_REVALIDATE_SECONDS
         value: "300"
+      # The R2 media address when the API uses STORAGE_DRIVER=r2 (build time), e.g. https://media.carisca.org
+      - key: MEDIA_PUBLIC_URL
+        sync: false

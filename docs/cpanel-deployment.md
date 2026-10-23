@@ -80,6 +80,7 @@ Add the **environment variables** (or create `~/carisca/backend/.env` with `chmo
 | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | From §3 |
 | `SESSION_SECRET` | 64+ random characters: `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
 | `STORAGE_DIR` | `/home/<user>/carisca-storage` |
+| `STORAGE_DRIVER` | `local`, or `r2` to keep uploads in Cloudflare R2 instead (then also the `R2_*` values and `MEDIA_PUBLIC_URL`; see `docs/media-storage.md`) |
 | `REVALIDATE_URL` | `https://carisca.knust.edu.gh/api/revalidate` |
 | `REVALIDATE_SECRET` | Another random secret (also set on the frontend) |
 | `SMTP_*`, `MAIL_FROM`, `CONTACT_NOTIFY_EMAIL` | Optional: the KNUST/CARISCA mail server, if available |

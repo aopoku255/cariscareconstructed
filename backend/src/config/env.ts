@@ -34,7 +34,20 @@ const schema = z.object({
   SESSION_IDLE_MINUTES: z.coerce.number().int().positive().default(120),
   SESSION_ABSOLUTE_HOURS: z.coerce.number().int().positive().default(12),
 
+  /** Where uploaded files are kept: `local` (STORAGE_DIR) or `r2` (Cloudflare R2). */
+  STORAGE_DRIVER: z.enum(['local', 'r2']).default('local'),
   STORAGE_DIR: z.string().default(path.resolve(__dirname, '../../storage')),
+  /** Public base URL of the media bucket, e.g. https://media.carisca.org. Required for R2. */
+  MEDIA_PUBLIC_URL: z.string().url().optional(),
+  R2_ACCOUNT_ID: z.string().optional(),
+  /** Overrides the endpoint derived from R2_ACCOUNT_ID (e.g. an EU-jurisdiction bucket). */
+  R2_ENDPOINT: z.string().url().optional(),
+  R2_ACCESS_KEY_ID: z.string().optional(),
+  R2_SECRET_ACCESS_KEY: z.string().optional(),
+  /** Bucket with public access enabled, served at MEDIA_PUBLIC_URL. */
+  R2_BUCKET: z.string().optional(),
+  /** Bucket without public access, for files uploaded as private. Optional. */
+  R2_PRIVATE_BUCKET: z.string().optional(),
   UPLOAD_MAX_IMAGE_MB: z.coerce.number().positive().default(5),
   UPLOAD_MAX_DOCUMENT_MB: z.coerce.number().positive().default(25),
 
@@ -55,6 +68,15 @@ const schema = z.object({
 
   /** Serve Swagger UI at /api/docs and the spec at /api/openapi.json. Defaults to on outside production. */
   API_DOCS_ENABLED: z.enum(['true', 'false']).optional(),
+}).superRefine((v, ctx) => {
+  if (v.STORAGE_DRIVER !== 'r2') return;
+  const required = ['R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET', 'MEDIA_PUBLIC_URL'] as const;
+  for (const key of required) {
+    if (!v[key]) ctx.addIssue({ code: 'custom', path: [key], message: 'Required when STORAGE_DRIVER=r2' });
+  }
+  if (!v.R2_ACCOUNT_ID && !v.R2_ENDPOINT) {
+    ctx.addIssue({ code: 'custom', path: ['R2_ACCOUNT_ID'], message: 'Set R2_ACCOUNT_ID (or R2_ENDPOINT) when STORAGE_DRIVER=r2' });
+  }
 });
 
 const parsed = schema.safeParse(process.env);
@@ -77,6 +99,7 @@ export const env = {
   mailEnabled: Boolean(raw.SMTP_HOST && raw.MAIL_FROM),
   publicStorageDir: path.join(raw.STORAGE_DIR, 'public'),
   privateStorageDir: path.join(raw.STORAGE_DIR, 'private'),
+  r2Endpoint: raw.R2_ENDPOINT ?? (raw.R2_ACCOUNT_ID ? `https://${raw.R2_ACCOUNT_ID}.r2.cloudflarestorage.com` : undefined),
 };
 
 export type Env = typeof env;

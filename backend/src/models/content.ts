@@ -11,11 +11,10 @@ import {
   type SeoFields,
   type StatusFields,
 } from './_shared';
-import { env } from '../config/env';
+import { storage } from '../services/storage';
 
-/** Public URL for a file stored under storage/public/uploads. */
-export const publicMediaUrl = (storagePath: string) =>
-  `${env.API_PUBLIC_URL.replace(/\/$/, '')}/uploads/${storagePath.split('/').map(encodeURIComponent).join('/')}`;
+/** Public URL of an uploaded file, from whichever storage driver holds it. */
+export const publicMediaUrl = (storagePath: string) => storage.publicUrl(storagePath);
 
 interface Timestamps {
   created_at?: Date;

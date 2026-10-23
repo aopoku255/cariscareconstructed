@@ -1,7 +1,6 @@
 import type { NextConfig } from 'next';
 
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5000/api/v1';
-const apiOrigin = new URL(apiBase);
 const isProd = process.env.NODE_ENV === 'production';
 
 /**
@@ -11,7 +10,8 @@ const isProd = process.env.NODE_ENV === 'production';
  * only ever talks to one origin. Point NEXT_PUBLIC_API_BASE_URL at this site's /api/v1.
  */
 const proxyTarget = process.env.API_PROXY_TARGET?.replace(/\/$/, '');
-const imageOrigins = [apiOrigin, ...(proxyTarget ? [new URL(proxyTarget)] : [])];
+/** Hosts that serve uploaded images: the API itself, or a public media bucket such as Cloudflare R2. */
+const imageOrigins = [apiBase, proxyTarget, process.env.MEDIA_PUBLIC_URL].filter(Boolean).map((url) => new URL(url!));
 
 const nextConfig: NextConfig = {
   // Self-contained server bundle for cPanel's Node.js application manager.

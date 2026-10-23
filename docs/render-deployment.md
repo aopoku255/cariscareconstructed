@@ -31,7 +31,7 @@ When both services sit under one custom domain, the proxy is no longer needed. F
 2. **A MySQL 8 database reachable from the internet.** Render has no managed MySQL. You have two options:
    - **The cPanel database** (`bacaris_carisca_website`). In cPanel, go to **Remote MySQL** and add Render's outbound IP addresses. To find them, open the `carisca-api` service in the Render dashboard, then **Connect → Outbound**; the service must exist first. Without this step, migrations fail with `Access denied` or a timeout.
    - **A Render private service running MySQL** with its own disk. Render documents this as the "Deploy MySQL" template. Use the private service's internal hostname as `DB_HOST`.
-3. **A paid instance type (Starter or above) for `carisca-api`.** Persistent disks and pre-deploy commands are not available on the free plan. The Blueprint uses `starter` for both services. The website can be moved to the free plan, but free services sleep when idle and the first request after that is slow.
+3. **A paid instance type (Starter or above) for `carisca-api`.** Persistent disks and pre-deploy commands are not available on the free plan. With media in Cloudflare R2 (`STORAGE_DRIVER=r2`, see [media-storage.md](media-storage.md)) the API needs no disk, and you can remove the `disk` block from `render.yaml`. The Blueprint uses `starter` for both services. The website can be moved to the free plan, but free services sleep when idle and the first request after that is slow.
 
 ## First deployment
 
@@ -97,7 +97,7 @@ The database starts with no articles or media. To copy content from the current 
 node dist/scripts/import-wordpress.js --with-media
 ```
 
-`--with-media` downloads images and documents to the persistent disk (`/var/data`). Without it, images stay linked to the old site. The import can safely be run again: records that already exist are left untouched. See [content-migration.md](content-migration.md) for what is imported and what still needs manual review.
+`--with-media` downloads images and documents into media storage: the persistent disk (`/var/data`), or the R2 bucket when `STORAGE_DRIVER=r2`. Without it, images stay linked to the old site. The import can safely be run again: records that already exist are left untouched. See [content-migration.md](content-migration.md) for what is imported and what still needs manual review.
 
 ## Check the deployment
 
@@ -107,7 +107,7 @@ node dist/scripts/import-wordpress.js --with-media
 | `https://carisca-web.onrender.com/api/v1/health` | The same response, which shows the proxy works |
 | `https://carisca-web.onrender.com/admin` → sign in | You stay signed in after refreshing the page |
 | Publish an article in the dashboard | It appears on the public site within seconds (on-demand revalidation) |
-| Upload an image, then redeploy the API | The image is still there (persistent disk) |
+| Upload an image, then redeploy the API | The image is still there (persistent disk or R2) |
 
 The Swagger UI is off in production (`API_DOCS_ENABLED=false`). To browse it temporarily, set the variable to `true` on `carisca-api` and open `/api/docs`. Alternatively, generate the spec locally with `npm run docs:openapi`.
 

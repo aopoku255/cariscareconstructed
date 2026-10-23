@@ -1,4 +1,3 @@
-import fs from 'node:fs';
 import { Router } from 'express';
 import multer from 'multer';
 import { Op, type WhereOptions } from 'sequelize';
@@ -6,8 +5,9 @@ import { z } from 'zod';
 import { requirePermission } from '../../middleware/auth';
 import { MediaAsset, User } from '../../models';
 import { audit } from '../../services/audit.service';
-import { absolutePath, deleteAsset, findUsages, MAX_UPLOAD_BYTES, replaceFile, storeUpload } from '../../services/media.service';
+import { deleteAsset, findUsages, MAX_UPLOAD_BYTES, replaceFile, storeUpload } from '../../services/media.service';
 import { revalidateFrontend } from '../../services/revalidate.service';
+import { storage } from '../../services/storage';
 import { badRequest, notFound } from '../../utils/errors';
 import { listQuerySchema, optText, paginate } from '../../validators/common';
 
@@ -63,12 +63,12 @@ mediaRouter.get('/:id', requirePermission('media.read'), async (req, res) => {
 /** Streams a private file to an authorised user. Public files are served statically. */
 mediaRouter.get('/:id/download', requirePermission('media.read'), async (req, res) => {
   const asset = await loadAsset(String(req.params.id));
-  const full = absolutePath(asset.visibility, asset.storage_path);
-  if (!fs.existsSync(full)) throw notFound('File missing from storage');
+  const file = await storage.read(asset.visibility, asset.storage_path);
+  if (!file) throw notFound('File missing from storage');
   res.setHeader('Content-Type', asset.mime_type);
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.attachment(asset.original_name);
-  fs.createReadStream(full).pipe(res);
+  file.pipe(res);
 });
 
 mediaRouter.post('/', requirePermission('media.create'), upload.single('file'), async (req, res) => {

@@ -10,6 +10,7 @@ import { csrfProtection, loadSession } from './middleware/auth';
 import { errorHandler, notFoundHandler } from './middleware/error';
 import { buildOpenApiSpec } from './docs/openapi';
 import { apiRouter } from './routes';
+import { INLINE_FILE } from './services/storage';
 import { logger } from './utils/logger';
 
 export function createApp() {
@@ -54,7 +55,8 @@ export function createApp() {
     }),
   );
 
-  // Public uploads: served from a persistent directory outside the build output.
+  // Public uploads on the local disk (STORAGE_DRIVER=local). With R2 the bucket serves them directly;
+  // this route keeps any files written to disk before the switch reachable.
   app.use(
     '/uploads',
     helmet.crossOriginResourcePolicy({ policy: 'cross-origin' }),
@@ -67,7 +69,7 @@ export function createApp() {
         res.setHeader('X-Content-Type-Options', 'nosniff');
         // Uploaded files can never run script, even SVGs opened directly.
         res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox");
-        if (!/\.(jpe?g|png|gif|webp|svg|pdf)$/i.test(filePath)) res.setHeader('Content-Disposition', 'attachment');
+        if (!INLINE_FILE.test(filePath)) res.setHeader('Content-Disposition', 'attachment');
       },
     }),
   );

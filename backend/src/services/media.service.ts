@@ -1,5 +1,4 @@
 import crypto from 'node:crypto';
-import fs from 'node:fs/promises';
 import path from 'node:path';
 import { imageSize } from 'image-size';
 import { Op, type Model, type ModelStatic } from 'sequelize';
@@ -24,6 +23,7 @@ import {
 } from '../models';
 import { badRequest, conflict } from '../utils/errors';
 import { slugify } from '../utils/slug';
+import { storage } from './storage';
 
 type Kind = 'image' | 'document';
 
@@ -114,34 +114,12 @@ export function validateUpload(file: Express.Multer.File): ValidatedFile {
   return { ext, rule, width, height, checksum };
 }
 
-/** Builds `uploads/YYYY/MM/<slug>-<random>.<ext>` and resolves it inside the storage root. */
+/** Builds `YYYY/MM/<slug>-<random>.<ext>`, the storage path shared by every storage driver. */
 function buildStoragePath(originalName: string, ext: string) {
   const now = new Date();
   const base = slugify(path.basename(originalName, path.extname(originalName)), 80);
   const name = `${base}-${crypto.randomBytes(4).toString('hex')}.${ext}`;
   return path.posix.join(String(now.getUTCFullYear()), String(now.getUTCMonth() + 1).padStart(2, '0'), name);
-}
-
-export function absolutePath(visibility: 'public' | 'private', storagePath: string) {
-  const root = path.resolve(visibility === 'public' ? env.publicStorageDir : env.privateStorageDir, 'uploads');
-  const full = path.resolve(root, storagePath);
-  // Defence in depth against path traversal via stored values.
-  if (!full.startsWith(root + path.sep)) throw badRequest('Invalid storage path');
-  return full;
-}
-
-async function writeFile(visibility: 'public' | 'private', storagePath: string, buf: Buffer) {
-  const full = absolutePath(visibility, storagePath);
-  await fs.mkdir(path.dirname(full), { recursive: true });
-  await fs.writeFile(full, buf, { flag: 'wx' });
-}
-
-async function removeFile(visibility: 'public' | 'private', storagePath: string) {
-  try {
-    await fs.unlink(absolutePath(visibility, storagePath));
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
-  }
 }
 
 export async function storeUpload(
@@ -158,7 +136,7 @@ export async function storeUpload(
   const v = validateUpload(file);
   const visibility = meta.visibility ?? 'public';
   const storagePath = buildStoragePath(file.originalname, v.ext);
-  await writeFile(visibility, storagePath, file.buffer);
+  await storage.put(visibility, storagePath, file.buffer, v.rule.mime);
   try {
     return await MediaAsset.create({
       kind: v.rule.kind,
@@ -178,7 +156,7 @@ export async function storeUpload(
       uploaded_by: meta.uploaded_by ?? null,
     });
   } catch (err) {
-    await removeFile(visibility, storagePath);
+    await storage.remove(visibility, storagePath);
     throw err;
   }
 }
@@ -191,7 +169,7 @@ export async function replaceFile(asset: MediaAsset, file: Express.Multer.File) 
   const v = validateUpload(file);
   if (v.rule.kind !== asset.kind) throw badRequest(`Replacement must also be a ${asset.kind}.`);
   const storagePath = buildStoragePath(file.originalname, v.ext);
-  await writeFile(asset.visibility, storagePath, file.buffer);
+  await storage.put(asset.visibility, storagePath, file.buffer, v.rule.mime);
   const oldPath = asset.storage_path;
   await asset.update({
     filename: path.posix.basename(storagePath),
@@ -203,7 +181,7 @@ export async function replaceFile(asset: MediaAsset, file: Express.Multer.File) 
     storage_path: storagePath,
     checksum: v.checksum,
   });
-  await removeFile(asset.visibility, oldPath);
+  await storage.remove(asset.visibility, oldPath);
   return asset;
 }
 
@@ -259,5 +237,5 @@ export async function deleteAsset(asset: MediaAsset) {
     });
   }
   await asset.destroy({ force: true });
-  await removeFile(asset.visibility, asset.storage_path);
+  await storage.remove(asset.visibility, asset.storage_path);
 }

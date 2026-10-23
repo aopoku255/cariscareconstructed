@@ -7,8 +7,11 @@ import { createApp } from './app';
 import { logger } from './utils/logger';
 
 async function main() {
-  for (const dir of [path.join(env.publicStorageDir, 'uploads'), path.join(env.privateStorageDir, 'uploads')]) {
-    fs.mkdirSync(dir, { recursive: true });
+  // Only the local driver writes to disk; the WordPress importer creates its own cache folder.
+  if (env.STORAGE_DRIVER === 'local') {
+    for (const dir of [path.join(env.publicStorageDir, 'uploads'), path.join(env.privateStorageDir, 'uploads')]) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
   }
   await sequelize.authenticate();
   const app = createApp();
