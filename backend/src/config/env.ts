@@ -9,6 +9,12 @@ const bool = z
   .optional()
   .transform((v) => v === 'true' || v === '1');
 
+/** Optional URL: trims whitespace and treats empty strings (common in .env files) as unset. */
+const optUrl = z.preprocess(
+  (v) => (typeof v === 'string' ? (v.trim() || undefined) : v),
+  z.string().url().optional(),
+);
+
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(5000),
@@ -38,10 +44,10 @@ const schema = z.object({
   STORAGE_DRIVER: z.enum(['local', 'r2']).default('local'),
   STORAGE_DIR: z.string().default(path.resolve(__dirname, '../../storage')),
   /** Public base URL of the media bucket, e.g. https://media.carisca.org. Required for R2. */
-  MEDIA_PUBLIC_URL: z.string().url().optional(),
+  MEDIA_PUBLIC_URL: optUrl,
   R2_ACCOUNT_ID: z.string().optional(),
   /** Overrides the endpoint derived from R2_ACCOUNT_ID (e.g. an EU-jurisdiction bucket). */
-  R2_ENDPOINT: z.string().url().optional(),
+  R2_ENDPOINT: optUrl,
   R2_ACCESS_KEY_ID: z.string().optional(),
   R2_SECRET_ACCESS_KEY: z.string().optional(),
   /** Bucket with public access enabled, served at MEDIA_PUBLIC_URL. */
@@ -61,7 +67,7 @@ const schema = z.object({
   CONTACT_NOTIFY_EMAIL: z.string().optional(),
 
   /** Frontend on-demand revalidation endpoint and shared secret. */
-  REVALIDATE_URL: z.string().url().optional(),
+  REVALIDATE_URL: optUrl,
   REVALIDATE_SECRET: z.string().optional(),
 
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),

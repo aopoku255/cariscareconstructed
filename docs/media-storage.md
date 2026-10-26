@@ -11,18 +11,26 @@ The database only stores the relative path (`2026/10/photo-ab12cd34.jpg`). The d
 
 ## Setting up R2
 
-1. **Create the public bucket.** In the Cloudflare dashboard, open **R2 Object Storage → Create bucket**. Name it, for example `carisca-media`. Leave the location on *Automatic*, or choose *Western Europe*.
-2. **Make it publicly readable.** In the bucket, open **Settings → Public access**.
-   - **Custom domain (recommended):** connect a subdomain such as `media.carisca.org`. The domain's DNS must be managed by Cloudflare. A custom domain gets Cloudflare caching and can carry the security headers described below.
-   - **R2.dev subdomain:** enable it to get an address like `https://pub-xxxx.r2.dev`. Cloudflare rate-limits these addresses and intends them for testing only.
-3. **Create a private bucket (optional).** Create `carisca-private` and leave public access **off**. Files uploaded with visibility *private* go there and are only downloadable by signed-in staff through the API. Without this bucket, private uploads are refused with a clear message.
+1. **Create the bucket.** In the Cloudflare dashboard, go to **R2 Object Storage → Overview** and select **Create bucket**. Give it a name (e.g. `carisca-media`) and pick a location hint (*Automatic* or a region close to your users).
 
-   R2 public access applies to a whole bucket, which is why private files can't share the public one.
-4. **Create an API token.** Open **R2 Object Storage → Manage API tokens → Create API token**.
-   - Permission: **Object Read & Write**, limited to the bucket(s) above.
-   - Copy the **Access Key ID** and **Secret Access Key**; Cloudflare shows the secret only once.
-   - Note your **Account ID**, shown on the R2 overview page.
-5. **Configure the API** on the server that runs it (cPanel `.env`, or the Render dashboard):
+2. **Make the bucket publicly accessible.** You need a public URL for browsers to load images. Pick **one** of these options:
+
+   **Option A — R2 public development URL (quickest).** In the Cloudflare dashboard, go to **R2 → your bucket → Settings → Public access** and enable the R2.dev subdomain. Cloudflare gives you a URL like `https://pub-900dc15efa6e4f0c84879fe16336a7b1.r2.dev`. That URL is your `MEDIA_PUBLIC_URL`. No Worker deploy needed.
+
+   **Option B — Cloudflare Worker.** Deploy the included Worker for more control (custom headers, future access rules). From the repo root:
+
+   ```bash
+   cd r2-worker
+   npx wrangler deploy
+   ```
+
+   Edit `wrangler.toml` first if your bucket name is different from `carisca-media`. After deploying, Wrangler prints the Worker URL (e.g. `https://carisca-media.<your-subdomain>.workers.dev`). That URL is your `MEDIA_PUBLIC_URL`.
+
+   **Option C — Custom domain.** Add a custom route to the Worker or configure a Cloudflare DNS record for the R2 bucket (e.g. `media.carisca.knust.edu.gh`).
+
+3. **Create an API token.** Go back to the **R2 Object Storage** overview page and select **Manage R2 API Tokens**. Choose **Create API token** under either *User API Tokens* or *Account API Tokens* (a user token is tied to your login; an account token can be shared with a team). Set the permission to **Object Read & Write** and limit it to the bucket you just created. After you confirm, copy the **Access Key ID** and **Secret Access Key** immediately — Cloudflare will not show the secret again. Your **Account ID** is on the R2 overview page or the token confirmation screen.
+
+4. **Configure the API.** Wherever the API runs (cPanel `.env`, Render dashboard, etc.), set:
 
    ```
    STORAGE_DRIVER=r2
@@ -30,14 +38,18 @@ The database only stores the relative path (`2026/10/photo-ab12cd34.jpg`). The d
    R2_ACCESS_KEY_ID=<access key id>
    R2_SECRET_ACCESS_KEY=<secret access key>
    R2_BUCKET=carisca-media
-   R2_PRIVATE_BUCKET=carisca-private        # optional
-   MEDIA_PUBLIC_URL=https://media.carisca.org
+   MEDIA_PUBLIC_URL=<the public URL from step 2: R2 dev URL, Worker URL, or custom domain>
    ```
 
    For a bucket created in the EU jurisdiction, also set `R2_ENDPOINT=https://<account id>.eu.r2.cloudflarestorage.com`.
 
    The API refuses to start if `STORAGE_DRIVER=r2` and any required value is missing, and lists the missing ones.
-6. **Configure the website.** Set `MEDIA_PUBLIC_URL` to the same address on the website host (Vercel: **Settings → Environment Variables**), then redeploy. Next.js only displays images from hosts it was built with, so a restart is not enough.
+
+5. **Configure Vercel.** In the Vercel project, go to **Settings → Environment Variables** and add `MEDIA_PUBLIC_URL` with the same public URL from step 2. Then **redeploy** — Next.js only allows images from hosts it was built with, so a restart is not enough.
+
+6. **Fill the live site.** Run `npm run import:wordpress -- --with-media` from this computer, with the live database and R2 settings in `backend/.env`. This computer already holds the WordPress downloads from the earlier import (`backend/storage/import-cache`), so they are uploaded to R2 rather than downloaded again.
+
+7. **Private bucket (optional).** Back in Cloudflare, create a second R2 bucket (e.g. `carisca-private`) and leave public access **off**. Add `R2_PRIVATE_BUCKET=carisca-private` to the API config. Files uploaded with visibility *private* go there and are only downloadable by signed-in staff through the API. Without this bucket, private uploads are refused with a clear message. R2 public access applies to a whole bucket, which is why private files cannot share the public one.
 
 ## Filling the live site
 
