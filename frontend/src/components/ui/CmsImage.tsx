@@ -17,6 +17,10 @@ interface Props {
   /** Fill the parent (which must be positioned) instead of reserving the slot's aspect ratio. */
   fill?: boolean;
   rounded?: boolean;
+  /** Load without preloading, e.g. carousel slides that must be ready before they slide into view. */
+  eager?: boolean;
+  /** CSS object-position, to keep the subject in frame when the image is cropped. */
+  objectPosition?: string;
 }
 
 /**
@@ -24,7 +28,7 @@ interface Props {
  * intended dimensions when no image has been assigned yet. Replacing the image in the dashboard
  * swaps the placeholder without any component change. The frame reserves space to prevent layout shift.
  */
-export function CmsImage({ media, slot, alt, sizes = '100vw', priority = false, className = '', fit, fill = false, rounded = false }: Props) {
+export function CmsImage({ media, slot, alt, sizes = '100vw', priority = false, className = '', fit, fill = false, rounded = false, eager = false, objectPosition }: Props) {
   const s = slots[slot];
   const objectFit = fit ?? (s.fit as 'cover' | 'contain');
   const frameClass = `${fill ? 'absolute inset-0' : 'relative w-full'} overflow-hidden ${rounded ? 'rounded-(--radius-card)' : ''} ${
@@ -42,7 +46,7 @@ export function CmsImage({ media, slot, alt, sizes = '100vw', priority = false, 
           width={s.width}
           height={s.height}
           className="h-full w-full object-cover"
-          loading={priority ? 'eager' : 'lazy'}
+          loading={priority || eager ? 'eager' : 'lazy'}
         />
       </div>
     );
@@ -57,10 +61,10 @@ export function CmsImage({ media, slot, alt, sizes = '100vw', priority = false, 
         fill
         sizes={sizes}
         preload={priority}
-        loading={priority ? undefined : 'lazy'}
+        loading={priority ? undefined : eager ? 'eager' : 'lazy'}
         quality={priority ? 80 : 70}
         className={objectFit === 'contain' ? 'object-contain' : 'object-cover'}
-        style={objectFit === 'cover' && slot === 'portrait' ? { objectPosition: 'center 20%' } : undefined}
+        style={objectPosition ? { objectPosition } : objectFit === 'cover' && slot === 'portrait' ? { objectPosition: 'center 20%' } : undefined}
       />
     </div>
   );

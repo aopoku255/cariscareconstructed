@@ -106,6 +106,7 @@ export const partners = [
     website_url: 'https://www.knust.edu.gh/',
     description: 'CARISCA is an interdisciplinary centre of excellence established at KNUST, Kumasi, Ghana.',
     is_featured: true,
+    logo_file: 'logo-knust 1.svg',
   },
   {
     name: 'LEARN Logistics by Kühne Foundation',
@@ -113,7 +114,8 @@ export const partners = [
     website_url: null,
     description: 'The Centre is supported by LEARN Logistics by Kühne Foundation.',
     is_featured: true,
-    review: 'Add the official website URL and an approved logo.',
+    logo_file: 'kuhne 3.svg',
+    review: 'Add the official website URL.',
   },
   {
     name: 'Arizona State University (ASU)',
@@ -121,6 +123,7 @@ export const partners = [
     website_url: 'https://www.asu.edu/',
     description: 'CARISCA was established at KNUST in partnership with Arizona State University.',
     is_featured: true,
+    logo_file: 'ASU-Logo.svg',
   },
   {
     name: 'International Supply Chain Education Alliance (ISCEA)',

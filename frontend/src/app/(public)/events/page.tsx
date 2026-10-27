@@ -1,13 +1,15 @@
 import Link from 'next/link';
 import { CalendarX } from 'lucide-react';
-import { EventCard } from '@/components/cards/Cards';
+import { EventCard, PortalEventCard } from '@/components/cards/Cards';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { FilterBar, ResultCount, firstParam, pageParam } from '@/components/ui/FilterBar';
 import { Pagination } from '@/components/ui/Pagination';
 import { SmartLink } from '@/components/ui/SmartLink';
 import { EmptyState } from '@/components/ui/Typography';
+import { EVENTS_SITE_URL } from '@/lib/config';
 import { EVENT_TYPE_LABELS } from '@/lib/format';
 import { buildMetadata } from '@/lib/seo';
+import { getUpcomingPortalEvents } from '@/services/events-portal';
 import { getEvents, getSite } from '@/services/public';
 import type { EventType } from '@/types/api';
 
@@ -26,7 +28,12 @@ export default async function EventsPage({ searchParams }: Props) {
   const type = firstParam(sp.type) as EventType | undefined;
   const q = firstParam(sp.q)?.slice(0, 200);
   const year = Number(firstParam(sp.year)) || undefined;
-  const [list, { settings }] = await Promise.all([getEvents({ when, page, pageSize: 10, type, q, year }), getSite()]);
+  // Upcoming events live on the events portal (registration); the past archive stays in this site's CMS.
+  const [list, portalEvents, { settings }] = await Promise.all([
+    when === 'past' ? getEvents({ when, page, pageSize: 10, type, q, year }) : null,
+    when === 'upcoming' ? getUpcomingPortalEvents(12) : null,
+    getSite(),
+  ]);
   const now = new Date().getUTCFullYear();
 
   const tab = (value: 'upcoming' | 'past', label: string) => (
@@ -71,17 +78,36 @@ export default async function EventsPage({ searchParams }: Props) {
             ]}
           />
         )}
-        <ResultCount {...list.meta} noun="events" />
-        {list.data.length ? (
+        {list && <ResultCount {...list.meta} noun="events" />}
+        {list?.data.length ? (
           <div className="grid gap-6">
             {list.data.map((e) => (
               <EventCard key={e.id} event={e} />
             ))}
           </div>
+        ) : portalEvents?.length ? (
+          <>
+            <p className="mb-6 text-muted">
+              Registration for CARISCA events is handled on the{' '}
+              <SmartLink href={`${EVENTS_SITE_URL}/events`} className="link">
+                CARISCA events portal
+              </SmartLink>
+              .
+            </p>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {portalEvents.map((e) => (
+                <PortalEventCard key={e.id} event={e} />
+              ))}
+            </div>
+          </>
         ) : when === 'upcoming' ? (
-          <EmptyState title="There are no upcoming events at the moment." icon={<CalendarX className="size-6" />}>
+          <EmptyState title={portalEvents ? 'There are no upcoming events at the moment.' : 'Upcoming events could not be loaded right now.'} icon={<CalendarX className="size-6" />}>
             <p>
-              Browse the <Link href="/events?when=past" className="link">past events archive</Link>
+              Visit the{' '}
+              <SmartLink href={`${EVENTS_SITE_URL}/events`} className="link">
+                CARISCA events portal
+              </SmartLink>
+              , browse the <Link href="/events?when=past" className="link">past events archive</Link>
               {settings.summit_url && (
                 <>
                   , or visit the{' '}
@@ -96,7 +122,7 @@ export default async function EventsPage({ searchParams }: Props) {
         ) : (
           <EmptyState title="No past events match these filters." />
         )}
-        <Pagination meta={list.meta} basePath="/events" params={{ when: when === 'past' ? 'past' : undefined, type, q, year: year ? String(year) : undefined }} />
+        {list && <Pagination meta={list.meta} basePath="/events" params={{ when: when === 'past' ? 'past' : undefined, type, q, year: year ? String(year) : undefined }} />}
       </div>
     </>
   );

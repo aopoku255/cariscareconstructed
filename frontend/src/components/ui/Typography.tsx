@@ -20,7 +20,8 @@ export function SectionHeading({
   align?: 'left' | 'center';
 }) {
   return (
-    <div className={`mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between ${align === 'center' ? 'text-center md:flex-col md:items-center' : ''}`}>
+    // data-reveal: animates in on pages that mount <ScrollReveal />; inert everywhere else.
+    <div data-reveal className={`mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between ${align === 'center' ? 'text-center md:flex-col md:items-center' : ''}`}>
       <div className={align === 'center' ? 'mx-auto max-w-2xl' : 'max-w-3xl'}>
         {eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}
         <Tag id={id} className="text-[1.75rem] leading-tight font-bold md:text-[2.125rem]">

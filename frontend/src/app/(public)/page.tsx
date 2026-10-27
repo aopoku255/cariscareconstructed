@@ -1,14 +1,17 @@
 import Link from 'next/link';
 import { ArrowRight, BookOpen, CalendarX, GraduationCap, Handshake, Microscope } from 'lucide-react';
-import { ArticleCard, ArticleListItem, CpdSessionCard, EventCard, PublicationCard } from '@/components/cards/Cards';
+import { ArticleCard, ArticleListItem, CpdSessionCard, PortalEventCard, PublicationCard } from '@/components/cards/Cards';
 import { HeroCarousel } from '@/components/home/HeroCarousel';
 import { ButtonLink } from '@/components/ui/Button';
 import { CmsImage, type ImageSlot } from '@/components/ui/CmsImage';
 import { FileDownload } from '@/components/ui/FileDownload';
+import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import { SmartLink } from '@/components/ui/SmartLink';
 import { EmptyState, SectionHeading } from '@/components/ui/Typography';
 import { ARTICLE_TYPE_LABELS, formatDate } from '@/lib/format';
+import { EVENTS_SITE_URL } from '@/lib/config';
 import { buildMetadata } from '@/lib/seo';
+import { getUpcomingPortalEvents } from '@/services/events-portal';
 import { getHome, getSite, resolvePage } from '@/services/public';
 import type { Page } from '@/types/api';
 
@@ -31,17 +34,23 @@ const FOCUS: Array<{ path: string; label: string; icon: typeof Microscope; slot:
 ];
 
 export default async function HomePage() {
-  const [{ settings }, home, ...focusPages] = await Promise.all([getSite(), getHome(), ...FOCUS.map((f) => resolvePage(f.path))]);
+  const [{ settings }, home, portalEvents, ...focusPages] = await Promise.all([
+    getSite(),
+    getHome(),
+    getUpcomingPortalEvents(),
+    ...FOCUS.map((f) => resolvePage(f.path)),
+  ]);
   const [topStory, ...moreNews] = home.news;
   const lmi = home.latestLmi;
 
   return (
     <>
+      <ScrollReveal />
       <HeroCarousel slides={home.slides} fallbackTitle={settings.site_tagline ?? 'Strong Supply Chains, Strong Communities'} fallbackCaption={settings.site_full_name} />
 
       {/* Introduction */}
       <section aria-labelledby="intro-heading" className="border-b border-line bg-white">
-        <div className="container-site grid gap-10 py-14 md:py-20 lg:grid-cols-[1.4fr_1fr] lg:items-center">
+        <div data-reveal-stagger className="container-site grid gap-10 py-14 md:py-20 lg:grid-cols-[1.4fr_1fr] lg:items-center">
           <div>
             <p className="eyebrow">About CARISCA</p>
             <h2 id="intro-heading" className="mt-2 text-[1.85rem] leading-tight font-bold md:text-[2.4rem]">
@@ -77,7 +86,7 @@ export default async function HomePage() {
       <section aria-labelledby="focus-heading" className="bg-surface py-16 md:py-20">
         <div className="container-site">
           <SectionHeading id="focus-heading" eyebrow="What we do" title="Our focus areas" action={{ href: '/about/what-we-do', label: 'How we work' }} />
-          <div className="grid gap-6 md:grid-cols-3">
+          <div data-reveal-stagger className="grid gap-6 md:grid-cols-3">
             {FOCUS.map((f, i) => {
               const page = (focusPages[i]?.type === 'page' ? focusPages[i].page : null) as Page | null;
               const Icon = f.icon;
@@ -85,7 +94,7 @@ export default async function HomePage() {
                 <article key={f.path} className="group relative flex flex-col overflow-hidden rounded-(--radius-card) bg-white shadow-(--shadow-card)">
                   <CmsImage media={page?.heroImage} slot={f.slot} sizes="(min-width:768px) 33vw, 100vw" />
                   <div className="flex flex-1 flex-col p-6">
-                    <span className="-mt-12 mb-4 flex size-12 items-center justify-center rounded bg-brand-700 text-white shadow-(--shadow-card) ring-4 ring-white">
+                    <span className="relative z-10 -mt-12 mb-4 flex size-12 shrink-0 items-center justify-center rounded bg-brand-700 text-white shadow-(--shadow-card) ring-4 ring-white">
                       <Icon aria-hidden className="size-6" />
                     </span>
                     <h3 className="text-xl font-bold">
@@ -110,7 +119,7 @@ export default async function HomePage() {
         <div className="container-site">
           <SectionHeading id="news-heading" eyebrow="News & press releases" title="Latest from CARISCA" action={{ href: '/news', label: 'All news' }} />
           {topStory ? (
-            <div className="grid gap-10 lg:grid-cols-[2fr_1fr]">
+            <div data-reveal-stagger className="grid gap-10 lg:grid-cols-[2fr_1fr]">
               <div className="grid gap-6">
                 <article className="group relative grid overflow-hidden rounded-(--radius-card) border border-line bg-white shadow-(--shadow-card) md:grid-cols-[1.25fr_1fr]">
                   <CmsImage media={topStory.featuredImage} slot="newsThumb" sizes="(min-width:1024px) 40vw, 100vw" priority={false} />
@@ -165,7 +174,7 @@ export default async function HomePage() {
       {/* Research & impact */}
       <section aria-labelledby="research-heading" className="bg-brand-900 py-16 text-white md:py-20">
         <div className="container-site">
-          <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div data-reveal className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="max-w-3xl">
               <p className="font-display text-sm font-semibold tracking-[0.12em] text-sky-accent uppercase">Research &amp; evidence</p>
               <h2 id="research-heading" className="mt-2 text-[1.75rem] font-bold text-white md:text-[2.125rem]">
@@ -177,7 +186,7 @@ export default async function HomePage() {
             </Link>
           </div>
           <div className="grid gap-6 lg:grid-cols-3">
-            <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
+            <div data-reveal-stagger className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
               {home.researchThemes.map((t) => (
                 <div key={t.id} className="rounded-(--radius-card) border border-white/15 bg-white/5 p-5">
                   <h3 className="text-lg font-bold text-white">{t.name}</h3>
@@ -186,7 +195,7 @@ export default async function HomePage() {
               ))}
             </div>
             {lmi && (
-              <div className="flex flex-col rounded-(--radius-card) bg-white p-6 text-body">
+              <div data-reveal className="flex flex-col rounded-(--radius-card) bg-white p-6 text-body">
                 <p className="eyebrow">Ghana Logistics Managers Index</p>
                 <p className="mt-2 font-display text-lg font-bold text-ink">{lmi.period_label}</p>
                 {lmi.lmi_value ? (
@@ -216,7 +225,7 @@ export default async function HomePage() {
         <div className="container-site">
           <SectionHeading id="pubs-heading" eyebrow="Publications & resources" title="Reports, policy briefs and articles" action={{ href: '/publications', label: 'Browse all publications' }} />
           {home.publications.length ? (
-            <div className="grid grid-cols-2 gap-5 lg:grid-cols-4">
+            <div data-reveal-stagger className="grid grid-cols-2 gap-5 lg:grid-cols-4">
               {home.publications.map((p) => (
                 <PublicationCard key={p.id} publication={p} />
               ))}
@@ -229,7 +238,7 @@ export default async function HomePage() {
 
       {/* Training & events */}
       <section aria-labelledby="training-heading" className="bg-surface py-16 md:py-20">
-        <div className="container-site grid gap-12 lg:grid-cols-2">
+        <div data-reveal-stagger className="container-site grid gap-12 lg:grid-cols-2">
           <div>
             <SectionHeading id="training-heading" eyebrow="Training & CPD" title="Professional development" action={{ href: '/training/cpd', label: 'All CPDs' }} />
             {home.upcomingCpdSessions.length ? (
@@ -254,17 +263,21 @@ export default async function HomePage() {
             )}
           </div>
           <div>
-            <SectionHeading eyebrow="Events & conferences" title="Upcoming events" action={{ href: '/events', label: 'All events' }} />
-            {home.upcomingEvents.length ? (
+            <SectionHeading eyebrow="Events & conferences" title="Upcoming events" action={{ href: `${EVENTS_SITE_URL}/events`, label: 'All events' }} />
+            {portalEvents?.length ? (
               <div className="grid gap-5">
-                {home.upcomingEvents.map((e) => (
-                  <EventCard key={e.id} event={e} compact />
+                {portalEvents.map((e) => (
+                  <PortalEventCard key={e.id} event={e} />
                 ))}
               </div>
             ) : (
-              <EmptyState title="There are no upcoming events at the moment." icon={<CalendarX className="size-6" />}>
+              <EmptyState title={portalEvents ? 'There are no upcoming events at the moment.' : 'Upcoming events could not be loaded right now.'} icon={<CalendarX className="size-6" />}>
                 <p>
-                  See the <Link href="/events?when=past" className="link">events archive</Link>
+                  Visit the{' '}
+                  <SmartLink href={`${EVENTS_SITE_URL}/events`} className="link">
+                    CARISCA events portal
+                  </SmartLink>
+                  , see the <Link href="/events?when=past" className="link">events archive</Link>
                   {settings.summit_url && (
                     <>
                       {' '}or visit the{' '}
@@ -286,7 +299,7 @@ export default async function HomePage() {
         <section aria-labelledby="partners-heading" className="border-t border-line py-14">
           <div className="container-site">
             <SectionHeading id="partners-heading" eyebrow="Partnerships" title="Working with" action={{ href: '/about/partners', label: 'All partners' }} />
-            <ul className="grid grid-cols-2 gap-5 md:grid-cols-4">
+            <ul data-reveal-stagger className="grid grid-cols-2 gap-5 md:grid-cols-4">
               {home.partners.map((p) => (
                 <li key={p.id} className="flex flex-col rounded-(--radius-card) border border-line bg-white p-4">
                   <CmsImage media={p.logo} slot="partnerLogo" alt={p.logo ? `${p.name} logo` : undefined} sizes="(min-width:768px) 25vw, 50vw" />
@@ -300,7 +313,7 @@ export default async function HomePage() {
 
       {/* Contact */}
       <section aria-labelledby="contact-heading" className="border-t border-line bg-white py-14">
-        <div className="container-site flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+        <div data-reveal className="container-site flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 id="contact-heading" className="text-2xl font-bold">
               Get in touch

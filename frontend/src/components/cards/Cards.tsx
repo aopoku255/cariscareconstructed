@@ -1,5 +1,6 @@
+import Image from 'next/image';
 import Link from 'next/link';
-import { CalendarDays, Clock, FileText, MapPin, Monitor, Users } from 'lucide-react';
+import { CalendarDays, Clock, ExternalLink, FileText, MapPin, Monitor, Ticket, Users } from 'lucide-react';
 import {
   ARTICLE_TYPE_LABELS,
   DELIVERY_LABELS,
@@ -10,6 +11,7 @@ import {
   formatShortDate,
   truncate,
 } from '@/lib/format';
+import type { PortalEvent } from '@/services/events-portal';
 import type { ArticleSummary, CpdSession, EventItem, Newsletter, Publication, ResearchProject, StaffMember } from '@/types/api';
 import { CmsImage } from '../ui/CmsImage';
 import { Badge } from '../ui/Typography';
@@ -145,6 +147,57 @@ export function EventCard({ event, compact = false }: { event: EventItem; compac
           )}
         </ul>
         {!compact && e.summary && <p className="mt-3 line-clamp-2 text-[0.95rem] text-muted">{e.summary}</p>}
+      </div>
+    </article>
+  );
+}
+
+/** An upcoming event from the events portal; the card links out to its registration page. */
+export function PortalEventCard({ event }: { event: PortalEvent }) {
+  const e = event;
+  return (
+    <article className={cardBase}>
+      {e.bannerUrl ? (
+        <div className="relative w-full overflow-hidden bg-surface" style={{ aspectRatio: '1200 / 630' }}>
+          {/* Served straight from the events portal: no image-host allow-list to keep in sync, so a
+              changed portal address can never break the page. */}
+          <Image src={e.bannerUrl} alt="" fill unoptimized loading="lazy" className="object-contain" />
+        </div>
+      ) : (
+        <CmsImage media={null} slot="eventBanner" />
+      )}
+      <div className="flex flex-1 flex-col p-5">
+        <div className="flex flex-wrap items-center gap-2">
+          {e.typeName && <Badge tone="gold">{e.typeName}</Badge>}
+          {e.registrationOpen && <Badge tone="success">Registration open</Badge>}
+        </div>
+        <h3 className="mt-3 text-[1.15rem] leading-snug font-bold">
+          <a href={e.url} target="_blank" rel="noopener noreferrer" className={`group-hover:text-brand-700 ${stretched}`}>
+            {e.title}
+            <span className="sr-only"> (opens the events portal in a new tab)</span>
+          </a>
+        </h3>
+        <ul className="mt-3 space-y-1.5 text-[0.95rem] text-muted">
+          <li className="flex gap-2">
+            <CalendarDays aria-hidden className="mt-0.5 size-4 shrink-0 text-brand-600" />
+            <time dateTime={e.startAt}>{formatDateRange(e.startAt, e.endAt)}</time>
+          </li>
+          {e.where && (
+            <li className="flex gap-2">
+              {e.online ? <Monitor aria-hidden className="mt-0.5 size-4 shrink-0 text-brand-600" /> : <MapPin aria-hidden className="mt-0.5 size-4 shrink-0 text-brand-600" />}
+              {e.where}
+            </li>
+          )}
+          {e.fee && (
+            <li className="flex gap-2">
+              <Ticket aria-hidden className="mt-0.5 size-4 shrink-0 text-brand-600" />
+              {e.fee}
+            </li>
+          )}
+        </ul>
+        <span className="mt-auto inline-flex items-center gap-1.5 pt-4 font-display text-sm font-semibold text-brand-700" aria-hidden>
+          View details &amp; register <ExternalLink className="size-3.5" />
+        </span>
       </div>
     </article>
   );

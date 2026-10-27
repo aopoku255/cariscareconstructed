@@ -86,6 +86,15 @@ export function MainNav({ items, utility, contact }: Props) {
     };
   }, [mobileOpen]);
 
+  // The drawer stays mounted, so move focus in on open and back to the Menu button on close.
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (mobileOpen) closeButtonRef.current?.focus();
+    else if (drawerRef.current?.contains(document.activeElement)) menuButtonRef.current?.focus();
+  }, [mobileOpen]);
+
   // A click right after hover-opening should not immediately close the panel.
   const openedByHover = useRef(false);
   const hoverOpen = (i: number) => {
@@ -177,8 +186,9 @@ export function MainNav({ items, utility, contact }: Props) {
         {/* Mobile bar */}
         <div className="flex h-12 items-center justify-between lg:hidden">
           <button
+            ref={menuButtonRef}
             type="button"
-            className="flex h-10 items-center gap-2 rounded px-2 font-display font-semibold"
+            className="flex h-9 items-center gap-2 rounded-full px-3.5 font-display font-semibold transition-colors hover:bg-white/10 active:bg-white/15"
             aria-expanded={mobileOpen}
             aria-controls={`${id}-drawer`}
             onClick={() => setMobileOpen(true)}
@@ -189,70 +199,106 @@ export function MainNav({ items, utility, contact }: Props) {
         </div>
       </div>
 
-      {/* Mobile drawer */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Site menu" id={`${id}-drawer`}>
-          <div className="absolute inset-0 bg-brand-950/60" onClick={() => setMobileOpen(false)} aria-hidden />
-          <div className="absolute inset-y-0 right-0 flex w-full max-w-sm flex-col overflow-y-auto bg-white text-body shadow-xl">
-            <div className="flex h-14 items-center justify-between border-b border-line px-4">
-              <span className="font-display text-lg font-bold text-brand-900">Menu</span>
-              <button
-                type="button"
-                autoFocus
-                onClick={() => setMobileOpen(false)}
-                className="flex size-10 items-center justify-center rounded text-brand-800 hover:bg-brand-50"
-                aria-label="Close menu"
-              >
-                <X aria-hidden className="size-5" />
-              </button>
-            </div>
-            <ul className="flex-1 divide-y divide-line">
-              {items.map((item, i) => (
+      {/* Mobile drawer: stays mounted so it can slide in and out; inert while closed. */}
+      <div
+        className={`fixed inset-0 z-50 lg:hidden ${mobileOpen ? 'visible' : 'invisible delay-300'} transition-[visibility] motion-reduce:delay-0`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Site menu"
+        id={`${id}-drawer`}
+        inert={!mobileOpen}
+      >
+        <div
+          className={`absolute inset-0 bg-brand-950/50 backdrop-blur-[2px] transition-opacity duration-300 motion-reduce:transition-none ${mobileOpen ? 'opacity-100' : 'opacity-0'}`}
+          onClick={() => setMobileOpen(false)}
+          aria-hidden
+        />
+        <div
+          ref={drawerRef}
+          className={`absolute inset-y-0 right-0 flex w-[calc(100%-2.5rem)] max-w-sm flex-col overflow-y-auto overscroll-contain rounded-l-2xl bg-white text-body shadow-[-12px_0_40px_rgb(10_41_97/0.18)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
+            mobileOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
+        >
+          <div className="sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between bg-white/95 px-5 backdrop-blur">
+            <span className="font-display text-lg font-bold text-brand-900">Menu</span>
+            <button
+              ref={closeButtonRef}
+              type="button"
+              onClick={() => setMobileOpen(false)}
+              className="flex size-10 items-center justify-center rounded-full bg-surface text-brand-800 transition-colors hover:bg-brand-50 active:bg-brand-100"
+              aria-label="Close menu"
+            >
+              <X aria-hidden className="size-5" />
+            </button>
+          </div>
+          <ul className="flex-1 space-y-1 px-3 pb-4">
+            {items.map((item, i) => {
+              const active = isActive(pathname, item.href) || item.children.some((c) => isActive(pathname, c.href));
+              const expanded = mobileExpanded === i;
+              const row = `flex w-full items-center justify-between rounded-xl px-4 py-3.5 text-left font-display text-[1.05rem] font-semibold transition-colors ${
+                active ? 'bg-brand-50 text-brand-800' : 'text-ink hover:bg-surface active:bg-surface'
+              }`;
+              return (
                 <li key={item.id}>
                   {item.children.length ? (
                     <>
-                      <button
-                        type="button"
-                        className="flex w-full items-center justify-between px-5 py-4 text-left font-display text-lg font-semibold text-ink"
-                        aria-expanded={mobileExpanded === i}
-                        aria-controls={`${id}-m-${i}`}
-                        onClick={() => setMobileExpanded(mobileExpanded === i ? null : i)}
-                      >
+                      <button type="button" className={row} aria-expanded={expanded} aria-controls={`${id}-m-${i}`} onClick={() => setMobileExpanded(expanded ? null : i)}>
                         {item.label}
-                        <ChevronDown aria-hidden className={`size-5 text-brand-600 transition-transform ${mobileExpanded === i ? 'rotate-180' : ''}`} />
+                        <span className={`flex size-7 items-center justify-center rounded-full transition-colors ${expanded ? 'bg-brand-700 text-white' : 'bg-surface text-brand-600'}`}>
+                          <ChevronDown aria-hidden className={`size-4 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`} />
+                        </span>
                       </button>
-                      <ul id={`${id}-m-${i}`} hidden={mobileExpanded !== i} className="bg-surface pb-2">
-                        {item.children.map((child) => (
-                          <li key={child.id}>
-                            <NavLink item={child} onNavigate={() => setMobileOpen(false)} className="block px-8 py-3 text-base text-body hover:text-brand-700" />
-                          </li>
-                        ))}
-                      </ul>
+                      {/* Animates height by transitioning the grid row from 0fr to 1fr. */}
+                      <div
+                        id={`${id}-m-${i}`}
+                        inert={!expanded}
+                        className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
+                      >
+                        <ul className="overflow-hidden">
+                          <li aria-hidden className="h-1" />
+                          {item.children.map((child) => (
+                            <li key={child.id}>
+                              <NavLink
+                                item={child}
+                                onNavigate={() => setMobileOpen(false)}
+                                className={`ml-4 block rounded-lg border-l-2 py-2.5 pr-4 pl-4 text-[0.95rem] transition-colors ${
+                                  isActive(pathname, child.href) ? 'border-brand-700 bg-brand-50/60 font-semibold text-brand-800' : 'border-line text-body hover:border-brand-300 hover:bg-surface'
+                                }`}
+                              />
+                            </li>
+                          ))}
+                          <li aria-hidden className="h-2" />
+                        </ul>
+                      </div>
                     </>
                   ) : (
-                    <NavLink item={item} onNavigate={() => setMobileOpen(false)} className="block px-5 py-4 font-display text-lg font-semibold text-ink" />
+                    <NavLink item={item} onNavigate={() => setMobileOpen(false)} className={row} />
                   )}
                 </li>
-              ))}
-            </ul>
-            <div className="space-y-3 border-t border-line bg-surface p-5 text-sm">
-              {utility.map((u) => (
-                <NavLink key={u.id} item={u} onNavigate={() => setMobileOpen(false)} className="mr-4 inline-block font-semibold text-brand-700" />
-              ))}
-              {contact.phone && (
-                <a href={`tel:${contact.phoneLink ?? contact.phone}`} className="flex items-center gap-2 text-body">
-                  <Phone aria-hidden className="size-4" /> {contact.phone}
-                </a>
-              )}
-              {contact.email && (
-                <a href={`mailto:${contact.email}`} className="flex items-center gap-2 break-all text-body">
-                  <Mail aria-hidden className="size-4" /> {contact.email}
-                </a>
-              )}
-            </div>
+              );
+            })}
+          </ul>
+          <div className="mx-3 mb-3 space-y-3 rounded-2xl bg-surface p-5 text-sm">
+            {utility.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {utility.map((u) => (
+                  <NavLink key={u.id} item={u} onNavigate={() => setMobileOpen(false)} className="inline-flex items-center rounded-full bg-white px-3.5 py-1.5 font-semibold text-brand-700 shadow-(--shadow-card)" />
+                ))}
+              </div>
+            )}
+            {contact.phone && (
+              <a href={`tel:${contact.phoneLink ?? contact.phone}`} className="flex items-center gap-2.5 text-body hover:text-brand-700">
+                <Phone aria-hidden className="size-4 text-brand-600" /> {contact.phone}
+              </a>
+            )}
+            {contact.email && (
+              <a href={`mailto:${contact.email}`} className="flex items-center gap-2.5 break-all text-body hover:text-brand-700">
+                <Mail aria-hidden className="size-4 text-brand-600" /> {contact.email}
+              </a>
+            )}
           </div>
         </div>
-      )}
+      </div>
     </nav>
   );
 }

@@ -22,6 +22,11 @@ describe('media library', () => {
     expect((await send('post', '/api/v1/admin/media').attach('file', Buffer.from('<?php echo 1;'), 'shell.png')).status).toBe(400);
     const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
     expect((await send('post', '/api/v1/admin/media').attach('file', svg, 'logo.svg')).status).toBe(400);
+    const handler = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"></svg>');
+    expect((await send('post', '/api/v1/admin/media').attach('file', handler, 'logo.svg')).status).toBe(400);
+    // Attribute names that merely contain "on" (e.g. Figma exports) are not event handlers.
+    const exported = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><pattern patternContentUnits="objectBoundingBox"/></svg>');
+    expect((await send('post', '/api/v1/admin/media').attach('file', exported, 'export.svg')).status).toBe(201);
     // Path segments in the uploaded filename are discarded.
     const traversal = await send('post', '/api/v1/admin/media').attach('file', PNG, '../../etc/passwd.png');
     expect(traversal.status).toBe(201);

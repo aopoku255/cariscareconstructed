@@ -75,8 +75,11 @@ describe('MainNav', () => {
     const dialog = screen.getByRole('dialog', { name: 'Site menu' });
     expect(dialog).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Close menu' })).toHaveFocus();
+    expect(dialog).not.toHaveAttribute('inert');
     await user.click(screen.getByRole('button', { name: 'Close menu' }));
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    // The drawer stays mounted so it can slide out; once closed it is inert and focus returns to Menu.
+    expect(dialog).toHaveAttribute('inert');
+    expect(screen.getByRole('button', { name: 'Menu' })).toHaveFocus();
   });
 });
 

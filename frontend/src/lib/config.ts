@@ -9,3 +9,7 @@ export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3
 export const CONTENT_REVALIDATE_SECONDS = Number(process.env.CONTENT_REVALIDATE_SECONDS ?? 300);
 
 export const SITE_NAME = 'CARISCA';
+
+/** The CARISCA events portal (registration for CPDs, summits and forums) and its public API. */
+export const EVENTS_SITE_URL = (process.env.EVENTS_SITE_URL || 'https://events.carisca.org').replace(/\/$/, '');
+export const EVENTS_API_URL = (process.env.EVENTS_API_URL || 'https://events-api.carisca.org/api/v1').replace(/\/$/, '');

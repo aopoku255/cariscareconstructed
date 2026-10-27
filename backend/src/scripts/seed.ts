@@ -8,6 +8,7 @@
  */
 import { sequelize } from '../models';
 import { seedPages, seedPeopleAndPartners, seedPublishing, seedRedirects, seedResearch } from '../seeders/content';
+import { revalidateFrontend } from '../services/revalidate.service';
 import { seedCategories, seedMenus, seedRolesAndPermissions, seedSettings, seedStaffGroups } from '../seeders/system';
 
 async function main() {
@@ -29,6 +30,8 @@ async function main() {
     };
     console.log('Verified content seeded (new rows):', counts);
   });
+  // Seeded rows bypass the admin API, so purge the frontend cache the same way an edit would.
+  await revalidateFrontend(['settings', 'menus', 'home', 'pages', 'partners', 'staff', 'research', 'publications', 'cpd', 'redirects', 'media']);
   console.log('Next: run "npm run admin:create" to create the first administrator, then optionally "npm run import:wordpress".');
 }
 

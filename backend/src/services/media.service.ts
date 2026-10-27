@@ -76,7 +76,8 @@ export const MAX_UPLOAD_BYTES = Math.max(env.UPLOAD_MAX_IMAGE_MB, env.UPLOAD_MAX
 /** Rejects SVGs that could execute script when opened directly. */
 function assertSafeSvg(buf: Buffer) {
   const text = buf.toString('utf8');
-  if (/<script|on[a-z]+\s*=|javascript:|<foreignObject|<iframe|<embed|<object/i.test(text)) {
+  // Event handlers must start an attribute name, so `patternContentUnits=` (common in exported logos) is not one.
+  if (/<script|[\s/"']on[a-z]+\s*=|javascript:|<foreignObject|<iframe|<embed|<object/i.test(text)) {
     throw badRequest('SVG files containing scripts, event handlers or embedded content are not allowed.');
   }
 }
